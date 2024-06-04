@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera and Gallery Upload</title>
+</head>
+<body>
+    <h1>Camera and Gallery Upload</h1>
+    <video id="video" width="320" height="240" autoplay></video>
+    <button id="capture">Capture</button>
+    <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+    <input type="file" id="gallery" accept="image/*">
+    <img id="galleryImg" width="320" height="240">
+
+    <script>
+        // Set up camera
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const captureButton = document.getElementById('capture');
+        const galleryInput = document.getElementById('gallery');
+        const galleryImg = document.getElementById('galleryImg');
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error("Error accessing camera: ", err);
+            });
+
+        // Capture image from camera
+        captureButton.addEventListener('click', () => {
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(blob => {
+                uploadImage(blob);
+            });
+        });
+
+        // Handle gallery image selection
+        galleryInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    galleryImg.src = e.target.result;
+                    uploadImage(file);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Function to upload image to the server
+        function uploadImage(image) {
+            const formData = new FormData();
+            formData.append('image', image);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('File uploaded successfully:', data);
+                const { fileUrl } = data;
+                console.log('File URL:', fileUrl);
+            })
+            .catch(error => {
+                console.error('Error uploading file:', error);
+            });
+        }
+    </script>
+</body>
+</html>
