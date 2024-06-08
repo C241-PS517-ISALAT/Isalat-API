@@ -9,11 +9,13 @@ admin.initializeApp({
 });
 
 const userRoutes = require('./routes/userRoutes');
+const profileRoutes = require('./routes/profileRoutes');
 
 const app = express();
 app.use(bodyParser.json());
 
-app.use('/api/users', userRoutes);
+app.use('/users', userRoutes);
+app.use('/profile', profileRoutes)
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

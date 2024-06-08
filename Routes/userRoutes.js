@@ -1,29 +1,33 @@
+// routes/userRoutes.js
 const express = require('express');
 const admin = require('firebase-admin');
-const router = express.Router();
 const axios = require('axios');
+const router = express.Router();
+
+// Importing verifyToken middleware from authMiddleware.js
+const { verifyToken } = require('../middleware/authMiddleware');
 
 // Firebase Web API Key (get this from your Firebase project settings)
 const FIREBASE_WEB_API_KEY = 'AIzaSyAGkLEyTincM8Pp4ybAvzLzxODvFxx40k4';
 
 // Sign Up User
 router.post('/signup', async (req, res) => {
-  const { email, password } = req.body;
+    const { email, password } = req.body;
 
-  // Check if the password meets the minimum length requirement
-  if (password.length < 8) {
-      return res.status(400).send({ error: 'Password must be at least 8 characters long' });
-  }
+    // Check if the password meets the minimum length requirement
+    if (password.length < 6) {
+        return res.status(400).send({ error: 'Password must be at least 8 characters long' });
+    }
 
-  try {
-      const userRecord = await admin.auth().createUser({
-          email: email,
-          password: password,
-      });
-      res.status(201).send({ message: 'User created successfully', user: userRecord });
-  } catch (error) {
-      res.status(400).send({ error: error.message });
-  }
+    try {
+        const userRecord = await admin.auth().createUser({
+            email: email,
+            password: password,
+        });
+        res.status(201).send({ message: 'User created successfully', user: userRecord });
+    } catch (error) {
+        res.status(400).send({ error: error.message });
+    }
 });
 
 // Sign In User (Email/Password)
@@ -49,68 +53,50 @@ router.post('/signin', async (req, res) => {
     }
 });
 
-// Middleware to verify Firebase ID Token
-const verifyToken = async (req, res, next) => {
-    const authorizationHeader = req.headers.authorization;
-    if (!authorizationHeader) {
-        return res.status(401).send({ error: 'Authorization header is missing' });
-    }
-
-    const idToken = authorizationHeader.split('Bearer ')[1];
+// Password Reset
+router.post('/resetpassword', async (req, res) => {
+    const { email } = req.body;
 
     try {
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        req.user = decodedToken;
-        next();
-    } catch (error) {
-        res.status(401).send({ error: 'Unauthorized' });
-    }
-};
-
-// Middleware to update user's last activity timestamp
-const updateLastActivity = async (req, res, next) => {
-    // Update user's last activity timestamp in the session state
-    req.session.lastActivity = Date.now();
-    next();
-};
-
-// Middleware to check session timeout
-const checkSessionTimeout = async (req, res, next) => {
-    const sessionTimeout = 5 * 60 * 1000; // 5 minutes in milliseconds
-    const currentTime = Date.now();
-    const lastActivityTime = req.session.lastActivity || 0;
-
-    // Check if session has timed out
-    if (currentTime - lastActivityTime > sessionTimeout) {
-        // Invalidate session and require reauthentication
-        req.session.destroy();
-        return res.status(401).send({ error: 'Session timeout. Please sign in again.' });
-    }
-
-    // Reset last activity timestamp
-    req.session.lastActivity = currentTime;
-    next();
-};
-
-// Route for user profile
-router.get('/profile', verifyToken, async (req, res) => {
-    // Retrieve user information based on the request (e.g., from a JWT token)
-    const userId = req.user.uid;
-
-    try {
-        const userRecord = await admin.auth().getUser(userId);
-
-        // Extract the email and displayName (username) from the user record
-        const { email} = userRecord;
-
-        res.status(200).send({ 
-            message: 'User profile retrieved successfully', 
-            user: { email } // Include email and username in the response
+        const resetPasswordUrl = `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${FIREBASE_WEB_API_KEY}`;
+        
+        const response = await axios.post(resetPasswordUrl, {
+            requestType: "PASSWORD_RESET",
+            email: email
         });
+
+        res.status(200).send({ message: 'Password reset email sent successfully' });
     } catch (error) {
-        res.status(400).send({ error: error.message });
+        if (error.response && error.response.data && error.response.data.error) {
+            const errorMessage = error.response.data.error.message;
+            res.status(400).send({ error: errorMessage });
+        } else {
+            res.status(400).send({ error: 'An unknown error occurred' });
+        }
+    }
+});
+
+// Confirm Password Reset
+router.post('/resetpassword-confirm', async (req, res) => {
+    const { oobCode, newPassword } = req.body;
+
+    try {
+        const confirmPasswordResetUrl = `https://identitytoolkit.googleapis.com/v1/accounts:resetPassword?key=${FIREBASE_WEB_API_KEY}`;
+
+        const response = await axios.post(confirmPasswordResetUrl, {
+            oobCode: oobCode,
+            newPassword: newPassword
+        });
+
+        res.status(200).send({ message: 'Password has been reset successfully' });
+    } catch (error) {
+        if (error.response && error.response.data && error.response.data.error) {
+            const errorMessage = error.response.data.error.message;
+            res.status(400).send({ error: errorMessage });
+        } else {
+            res.status(400).send({ error: 'An unknown error occurred' });
+        }
     }
 });
 
 module.exports = router;
-module.exports.verifyToken = verifyToken;
