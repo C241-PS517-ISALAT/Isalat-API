@@ -8,7 +8,7 @@ const router = express.Router();
 const { verifyToken } = require('../middleware/authMiddleware');
 
 // Firebase Web API Key (get this from your Firebase project settings)
-const FIREBASE_WEB_API_KEY = 'AIzaSyAGkLEyTincM8Pp4ybAvzLzxODvFxx40k4';
+const FIREBASE_WEB_API_KEY = 'api_key';
 
 // Sign Up User
 router.post('/signup', async (req, res) => {
