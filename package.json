@@ -3,6 +3,7 @@
     "@tensorflow/tfjs": "^4.19.0",
     "axios": "^1.7.2",
     "body-parser": "^1.20.2",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "firebase-admin": "^12.1.1",
     "multer": "^1.4.5-lts.1"
@@ -11,11 +12,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node app.js", 
-    "dev": "nodemon app.js", 
-    "lint": "eslint .", 
-    "format": "prettier --write .", 
-    "test": "echo \"Error: no test specified\" && exit 1" 
+    "start": "node app.js",
+    "deploy": "gcloud app deploy",
+    "dev": "nodemon app.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
